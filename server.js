@@ -37,15 +37,17 @@ function view(r, p) {
     myRating: r.ratings[p.id] ?? null,
     players: Object.values(r.players).map(q => ({
       id: q.id, name: q.name, online: q.online,
-      ready: r.phase === 'rate' ? (q.id === (o && o.id) || r.ratings[q.id] !== undefined) : q.ready,
+      ready: r.phase === 'rate' ? false : q.ready,
     })),
+    rated: o ? Object.keys(r.ratings).length : 0,
+    raters: o ? online(r).filter(q => q.id !== o.id).length : 0,
     final: r.phase === 'final' ? scores(r) : null,
   };
 }
 function push(r) { online(r).forEach(p => io.to(p.sid).emit('state', view(r, p))); }
-function itemFor(r) {
+function itemFor(r, p) {
   const o = owner(r);
-  return { idx: r.idx, total: r.queue.length, img: o.img, desc: o.desc, ownerId: o.id, ownerName: o.name, ms: Math.max(0, r.endsAt - Date.now()) };
+  return { idx: r.idx, total: r.queue.length, img: o.img, desc: o.desc, mine: o.id === p.id, ms: Math.max(0, r.endsAt - Date.now()) };
 }
 
 function startSubmit(r) {
@@ -83,7 +85,7 @@ function nextItem(r) {
   r.endsAt = Date.now() + ms;
   const tick = r.idx;
   r.timer = setTimeout(() => { if (r.phase === 'rate' && r.idx === tick) nextItem(r); }, ms + 300);
-  online(r).forEach(p => io.to(p.sid).emit('item', itemFor(r)));
+  online(r).forEach(p => io.to(p.sid).emit('item', itemFor(r, p)));
   push(r);
   checkRate(r);
 }
@@ -127,7 +129,7 @@ io.on('connection', socket => {
     clearTimeout(r.cleanup);
     cb && cb({ ok: true, pid: p.id, code: r.code });
     push(r);
-    if (r.phase === 'rate' && r.idx >= 0) socket.emit('item', itemFor(r));
+    if (r.phase === 'rate' && r.idx >= 0) socket.emit('item', itemFor(r, p));
   };
 
   socket.on('host', ({ name }, cb) => {
