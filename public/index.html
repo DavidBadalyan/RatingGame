@@ -234,13 +234,13 @@ function paintNums(){
 $('lock').onclick=()=>{if(sel)socket.emit('rate',sel)};
 function renderRate(){
   if(!item||item.idx!==S.idx)return;
-  const mine=item.ownerId===S.me;
+  const mine=item.mine;
   $('rWhich').textContent=`Round ${S.round}/${S.settings.rounds} · pic ${item.idx+1} of ${item.total}`;
   $('rImg').src=item.img;$('rCap').textContent=item.desc||'';
-  $('rBy').textContent=`Hear-me-out by ${item.ownerName}`;
+  $('rBy').textContent='';
   $('rVote').style.display=mine?'none':'block';
   $('rNote').textContent=mine?'This one is yours. Sit tight while everyone rates it.':(S.myRating!==null?'Waiting for the others.':'');
-  paintNums();chips('rPlayers',true);
+  paintNums();$('rPlayers').innerHTML=`<span class="chip">${S.rated} of ${S.raters} have rated</span>`;
   clearInterval(tick);
   const total=S.settings.rateSecs*1000;
   const upd=()=>{
